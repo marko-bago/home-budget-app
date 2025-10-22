@@ -51,10 +51,10 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
     result = await db.execute(query_login)
     user = result.scalars().first()
 
-    print(user)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     token = create_access_token({"sub": user.username}, expires_delta=timedelta(minutes=30))
 
     return Token(access_token=token)
+

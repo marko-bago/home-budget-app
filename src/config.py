@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     VERSION: str
@@ -15,9 +15,6 @@ class Settings(BaseSettings):
     DATABASE_ENGINE_MAX_OVERFLOW: int
     DATABASE_ENGINE_POOL_PING: bool
 
-    class Config:
-        env_file = "/local/projects/home-budget-app/src/.env"
+    model_config = SettingsConfigDict(env_file="/local/projects/home-budget-app/src/.env")
 
-
-
-settings = Settings()
+settings = Settings(_env_file="D:/dev/devot-api/src/test.env")

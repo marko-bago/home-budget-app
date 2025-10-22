@@ -8,8 +8,8 @@ router = APIRouter()
 @router.post("/", response_model=None)
 async def create_category(
     category_in: CategoryCreate, 
-    user: user_dependency,
-    db: db_dependency,
+    user=Depends(user_dependency),
+    db=Depends(db_dependency),
 ):
     new_category = Category(
         user_id = user.id,
