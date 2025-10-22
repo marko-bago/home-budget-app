@@ -36,7 +36,9 @@ coverage.xml
 .idea/
 *.swp
 
+# Jupyter
+.ipynb_checkpoints/
+
 # Byte-compiled /
 
-# Jupyter
-.ipymb_checkpoints
+
