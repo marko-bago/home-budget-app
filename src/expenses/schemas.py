@@ -20,7 +20,4 @@ class ExpenseCreate(BaseModel):
         default=None
     )
 
-class ExpenseCategoryBase(BaseModel):
-    name: str
-    description: Optional[str] = None
 

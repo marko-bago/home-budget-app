@@ -12,14 +12,5 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
-
     balance = Column(Float, default=1000.0)  # predefined starting balance
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    expenses = relationship(
-        "Expense",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     DATABASE_ENGINE_POOL_PING: bool
 
     class Config:
-        env_file = "D:\dev\devot-api\src\.env"
+        env_file = "/local/projects/home-budget-app/src/.env"
 
 
 

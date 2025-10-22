@@ -9,21 +9,19 @@ from fastapi import Depends, Security, HTTPException, status
 from src.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User
-from src.auth.security import ALGORITHM
+from src.auth.security_utils import ALGORITHM
 from typing import Annotated
 
-def get_session():
+async def get_session():
     db = SessionFactory()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 db_dependency = Annotated[AsyncSession, Depends(get_session)]
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-token_dependency = Annotated[str, Depends(oauth2_scheme)]
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"api/{settings.VERSION}/auth/login")
 
 async def get_current_user(token: str = Security(oauth2_scheme), db: AsyncSession = db_dependency):
 
@@ -40,7 +38,6 @@ async def get_current_user(token: str = Security(oauth2_scheme), db: AsyncSessio
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
-# Any route using this dependency will require a valid JWT
 user_dependency = Annotated[User , Depends(get_current_user)]
 
 async def get_current_active_superuser(current_user: user_dependency) -> User:

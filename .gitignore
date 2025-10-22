@@ -37,3 +37,6 @@ coverage.xml
 *.swp
 
 # Byte-compiled /
+
+# Jupyter
+.ipymb_checkpoints
