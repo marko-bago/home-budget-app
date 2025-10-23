@@ -5,13 +5,14 @@ from fastapi import FastAPI
 from src.auth.router import router as auth_router
 from src.expenses.router import router as expenses_router
 from src.categories.router import router as categories_router
+from src.users.router import router as users_router
 from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import Base, engine
 
 ## Needed for lifespan table creation
 from src.expenses.models import Expense
-from src.auth.models import User
+from src.users.models import User
 from src.categories.models import Category
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ if settings.ALL_CORS_ORIGINS:
 app.include_router(auth_router, prefix=f"/api/{settings.VERSION}/auth")
 app.include_router(expenses_router, prefix=f"/api/{settings.VERSION}/expenses")
 app.include_router(categories_router, prefix=f"/api/{settings.VERSION}/categories")
+app.include_router(users_router, prefix=f"/api/{settings.VERSION}/users")
 
 
     

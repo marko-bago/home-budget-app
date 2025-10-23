@@ -17,4 +17,5 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file="/local/projects/home-budget-app/src/.env")
 
-settings = Settings(_env_file="D:/dev/devot-api/src/test.env")
+#settings = Settings(_env_file="D:/dev/devot-api/src/test.env")
+settings = Settings()

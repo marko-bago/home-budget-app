@@ -14,5 +14,4 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
     description = Column(String(255), nullable=True)
     spent_at = Column(DateTime(timezone=True), server_default=func.now())
-    date = Column(DateTime, nullable=False)
 

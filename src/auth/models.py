@@ -4,7 +4,6 @@ from sqlalchemy import Column, Integer, Float, Boolean, String, DateTime, func
 
 class User(Base):
     
-    """Represents a regular app user."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

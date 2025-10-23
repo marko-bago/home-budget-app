@@ -1,12 +1,10 @@
-from fastapi import APIRouter, status
-
-from .schemas import UserCreate, UserResponse, LoginRequest, Token
+from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from .schemas import UserCreate, Token
 from .models import User
-from src.dependencies import db_dependency
-from fastapi import HTTPException
+from src.dependencies import get_session
 from .security_utils import hash_password, verify_password, create_access_token
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi import Depends
+
 from sqlalchemy import select
 from datetime import timedelta
 from typing import Annotated
@@ -14,7 +12,7 @@ from typing import Annotated
 router = APIRouter()
 
 @router.post("/register", response_model=None)
-async def register(user_in: UserCreate, db: db_dependency):
+async def register(user_in: UserCreate, db = Depends(get_session)):
 
     query_check_email = select(User).where(User.email == user_in.email)
     check_email = await db.execute(query_check_email)
@@ -39,11 +37,11 @@ async def register(user_in: UserCreate, db: db_dependency):
     await db.commit()
     await db.refresh(new_user)
 
-    return {"message": f"User '{new_user.username}' successfully registered"}
+    return {"message": f"User '{new_user.username}' successfully registered", "user_id": new_user.id}
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db = Depends(get_session)):
     
     print(f"Form data: {form_data}")
 
