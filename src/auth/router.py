@@ -1,17 +1,18 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from .schemas import UserCreate, Token
+from .schemas import UserCreate, UserOut, Token
 from .models import User
+from src.categories.models import Category
 from src.dependencies import get_session
 from .security_utils import hash_password, verify_password, create_access_token
-
+from src.config import settings
 from sqlalchemy import select
 from datetime import timedelta
 from typing import Annotated
 
 router = APIRouter()
 
-@router.post("/register", response_model=None)
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, db = Depends(get_session)):
 
     query_check_email = select(User).where(User.email == user_in.email)
@@ -34,10 +35,16 @@ async def register(user_in: UserCreate, db = Depends(get_session)):
         balance=1000.0  # default balance
     )
     db.add(new_user)
+
+    # Create default categories
+    for c in settings.DEFAULT_CATEGORIES:
+        category = Category(user_id=new_user.id, name=c["name"], description=c["description"])
+        db.add(category)
+
     await db.commit()
     await db.refresh(new_user)
 
-    return {"message": f"User '{new_user.username}' successfully registered", "user_id": new_user.id}
+    return new_user
 
 
 @router.post("/login", response_model=Token)

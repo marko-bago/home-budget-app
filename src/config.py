@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+
     VERSION: str
     PROJECT_NAME: str
     API_V1_STR: str
@@ -15,7 +16,22 @@ class Settings(BaseSettings):
     DATABASE_ENGINE_MAX_OVERFLOW: int
     DATABASE_ENGINE_POOL_PING: bool
 
-    model_config = SettingsConfigDict(env_file="/local/projects/home-budget-app/src/.env")
+    DEFAULT_CATEGORIES = [
+        {"name": "Groceries", "description": "Money spent at grocery shops"},
+        {"name": "Transport", "description": "Gas, public transit, and ride shares"},
+        {"name": "Housing", "description": "Rent/Mortgage and utilities"},
+        {"name": "Dining", "description": "Restaurants, street food, ordering take-out"},
+        {"name": "Drinks", "description": "Going out for coffee, alcohol or other drinks"},
+        {"name": "Clothing", "description": "Clothes, shoes, fashion accessories"},
+        {"name": "Education", "description": "Education cost, seminars, webinars, courses"},
+        {"name": "Electronics", "description": "Machines, gadgets, tools, computers..."},
+        {"name": "Subscriptions", "description": "Netflix, Spotify, Youtube and so on"},
+        {"name": "Health", "description": "Doctor bills"},
+        {"name": "Leisure", "description": "Movies, Museums, Festivals..."},
+        {"name": "Other", "description": "Everything else"},
+    ]
 
-#settings = Settings(_env_file="D:/dev/devot-api/src/test.env")
+    model_config = SettingsConfigDict(env_file=".env")
+
+#settings = Settings(_env_file="test.env")
 settings = Settings()
