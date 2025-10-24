@@ -39,6 +39,6 @@ coverage.xml
 # Jupyter
 .ipynb_checkpoints/
 
-# Byte-compiled /
-
+# envs
+.env
 

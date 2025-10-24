@@ -20,16 +20,20 @@ async def list_transactions(
     from_date: date = Query(None, description="Filter transactions from this date"),
     to_date: date = Query(None, description="Filter transactions to this date"),
     period: str = Query(None, description="Filter transactions by predefined period"),
-    sort_by: str = Query("spent_at", regex="^(amount|spent_at)$", description="Sort by 'amount' or 'spent_at'"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order: 'asc' or 'desc'"),
+    sort_by: str = Query("spent_at", pattern="^(amount|spent_at)$", description="Sort by 'amount' or 'spent_at'"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: 'asc' or 'desc'"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session)
 ):  
     
-    query = select(Transaction).where(Transaction.user_id == user.id)
+    query = select(Transaction).join(Category).where(Transaction.user_id == user.id)
 
     if category:
-        query = query.where(Transaction.category == category)
+        query_check_exists = select(Category).where(category == Category.name)
+        cat_db = (await db.execute(query_check_exists)).scalars().first()
+        if not cat_db:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+        query = query.where(Transaction.category_id == cat_db.id)
 
     if amount_min:
         query = query.where(Transaction.amount >= amount_min)
@@ -72,7 +76,7 @@ async def list_transactions(
     return transactions
 
 @router.get("/summary", status_code=status.HTTP_200_OK)
-async def get_transactions_summary(
+async def get_summary(
     category: str = Query(None, description="Filter by category"),
     amount_min: float = Query(None, ge=0),
     amount_max: float = Query(None, ge=0),
@@ -91,10 +95,14 @@ async def get_transactions_summary(
         func.count(Transaction.id),
         func.sum(adjusted_amount),
         func.avg(adjusted_amount)
-    ).where(Transaction.user_id == user.id)
+    ).join(Category).where(Transaction.user_id == user.id)
 
     if category:
-        query = query.where(Transaction.category == category)
+        query_check_exists = select(Category).where(category == Category.name)
+        cat_db = (await db.execute(query_check_exists)).scalars().first()
+        if not cat_db:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+        query = query.where(Transaction.category_id == cat_db.id)
 
     if amount_min:
         query = query.where(Transaction.amount >= amount_min)
@@ -137,11 +145,10 @@ async def create_transaction(
     db=Depends(get_session)
 ):
     query_check_exists = select(Category).where(transaction_in.category == Category.name)
-    category = (await db.execute(query_check_exists)).scalars().first()
+    cat_db = (await db.execute(query_check_exists)).scalars().first()
 
-    if not category:
+    if not cat_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
-
 
     if user.balance < transaction_in.amount:
         raise HTTPException(status_code=409, detail="Insufficient balance.")
@@ -171,11 +178,10 @@ async def create_transaction(
 
     new_trans = Transaction(
         user_id=user.id,
-        category=transaction_in.category,
+        category=cat_db,
         amount=transaction_in.amount,
         description=transaction_in.description,
-        type=transaction_in.type,
-        spent_at=datetime.now()
+        type=transaction_in.type
     )
     
     db.add(new_trans)
@@ -186,7 +192,7 @@ async def create_transaction(
     return new_trans
 
 @router.put("/{transaction_id}", response_model=TransactionOut)
-async def create_transaction(
+async def update_transaction(
     transaction_id: int,
     transaction_update: TransactionUpdate,
     user=Depends(get_current_user),
@@ -195,20 +201,20 @@ async def create_transaction(
     query_check_exists = select(Transaction).where(Transaction.id == transaction_id)
     transaction = (await db.execute(query_check_exists)).scalars().first()
 
-    query_check_exists = select(Category).where(transaction_update.category == Category.name)
-    category = (await db.execute(query_check_exists)).scalars().first()
-
     if not transaction:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found.")
 
-    if not category:
+    query_check_exists = select(Category).where(transaction_update.category_new == Category.name)
+    cat_db = (await db.execute(query_check_exists)).scalars().first()
+
+    if not cat_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
 
     # Ensure the user owns this transaction
     if transaction.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to update this category.")
 
-    diff = transaction_update.amount - transaction.amount
+    diff = transaction_update.amount_new - transaction.amount
 
     if transaction.type == TransactionType.expense:
             # For expense, increasing amount deducts from balance
@@ -243,7 +249,7 @@ async def create_transaction(
             detail="Failed to update user."
         )
     
-    transaction.category = transaction_update.category_new
+    transaction.category_id = cat_db.id
     transaction.amount = transaction_update.amount_new
     transaction.description = transaction_update.description
 
@@ -254,7 +260,7 @@ async def create_transaction(
     return transaction
 
 @router.delete("/{transaction_id}", response_model=None)
-async def delete_category(
+async def delete_transaction(
     transaction_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session)

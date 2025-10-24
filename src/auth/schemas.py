@@ -1,17 +1,18 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class UserCreate(BaseModel):
     username: str
     email: str
+    password: str
 
 class UserOut(BaseModel):
-    id: str
+    id: int
     username: str
     email: str
+    balance: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):

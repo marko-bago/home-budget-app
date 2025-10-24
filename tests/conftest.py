@@ -1,55 +1,85 @@
-import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import StaticPool
+from src.config import settings
 
 from src.main import app
 from src.database import Base
 from src.dependencies import get_session
-from fastapi.testclient import TestClient
+from src.auth.models import User
+from src.categories.models import Category
 
-DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+engine = create_async_engine(
+    settings.TEST_DATABASE_URL,
+    echo=False,
+    future=True,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-FIXED_CATEGORIES = [
-    {"name": "Groceries", "description": "Money spent at grocery shops"},
-    {"name": "Transport", "description": "Gas, public transit, and ride shares"},
-    {"name": "Housing", "description": "Rent/Mortgage and utilities"},
-    {"name": "Dining", "description": "Restaurants, street food, ordering take-out"},
-    {"name": "Drinks", "description": "Going out for coffee, alcohol or other drinks"},
-    {"name": "Fashion", "description": "Clothes, shoes, fashion accessories"},
-    {"name": "Education", "description": "Education cost, seminars, webinars, courses"},
-    {"name": "Tech", "description": "Machines, gadgets, tools, computers and such"},
-    {"name": "Subscriptions", "description": "Netflix, Spotify, Youtube and so on"},
-    {"name": "Other", "description": "Everything else"},
-]
+import logging
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Set up a logger
+@pytest_asyncio.fixture(scope="session")
+def logger():
+    logger = logging.getLogger("test_logger")
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+    return logger
 
-engine = create_async_engine(TEST_DATABASE_URL, future=True)
-TestingSessionLocal = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_db():
-    # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     async with TestingSessionLocal() as session:
         yield session
-    # Drop tables after each test
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-@pytest.fixture(scope="function")
-def client(async_db):
-    # Override the dependency
-    async def override_get_db():
-        yield async_db
+@pytest_asyncio.fixture(scope="function")
+async def client(async_db):
+    async def override_get_session():
+        async with TestingSessionLocal() as session:
+            yield session
 
-    app.dependency_overrides[get_session] = override_get_db
+    app.dependency_overrides[get_session] = override_get_session
 
-    with TestClient(app) as client:
-        yield client
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
+    app.dependency_overrides.clear()
+
+from src.auth.security_utils import create_access_token
+
+@pytest_asyncio.fixture
+async def client_with_token(async_db):
+    async with TestingSessionLocal() as session:
+        user = User(
+            username="tester",
+            email="test@example.com",
+            hashed_password="hashed",
+            balance=1000.0,  # default balance
+            categories=[Category(name=c["name"], description=c["description"]) for c in settings.DEFAULT_CATEGORIES]
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+    token = create_access_token({"sub": user.username})
+    
+    async def override_get_session():
+        async with TestingSessionLocal() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", headers={"Authorization": f"Bearer {token}"}) as ac:
+        yield ac
+
+    app.dependency_overrides.clear()

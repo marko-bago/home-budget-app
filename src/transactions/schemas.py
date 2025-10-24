@@ -1,13 +1,13 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from src.categories.schemas import CategoryOut
 
 class TransactionCreate(BaseModel):
     category: str 
     amount: float 
     description: Optional[str] = None
     type: str
-    spent_at: datetime 
 
 class TransactionUpdate(BaseModel):
     category_new: str
@@ -19,6 +19,6 @@ class TransactionOut(BaseModel):
     amount: float
     description: Optional[str] = None
     spent_at: datetime
+    category: CategoryOut
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

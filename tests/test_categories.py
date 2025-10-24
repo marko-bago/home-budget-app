@@ -1,38 +1,54 @@
-from fastapi.testclient import TestClient
-from src.auth.security_utils import create_access_token
-
 from fastapi import status
-from .test_utils import create_test_user, create_test_category
-from src.main import app
+import pytest
 
-def test_categories(client):
+@pytest.mark.asyncio
+async def test_create_category(client_with_token, logger):
+    payload = {"name": "Test", "description": "test category"}
+    response = await client_with_token.post("/api/v1/categories/", json=payload)
+    data = response.json()
 
-    form_data = {
-        "username": "testuser", 
-        "email": "test@gmail.com",
-        "password": "12345"
-    }
+    logger.info(data)
+    assert response.status_code == status.HTTP_200_OK
+    assert data["name"] == "Test"
+    assert data["description"] == "test category"
+    assert "id" in data
 
-    r = create_test_user(client, 
-                         username=form_data["username"], 
-                         email=form_data["email"], 
-                         password=form_data["password"])
 
-    response = client.post("/api/v1/auth/login", data=form_data)
-    token = response.json()["access_token"]
+@pytest.mark.asyncio
+async def test_get_categories(client_with_token, logger):
     
-    category_data = {"name":"Groceries", "description":"Money spent at grocery shops"}
-    r = create_test_category(client, token=token, **category_data)
+    response = await client_with_token.get("/api/v1/categories/")
+    data = response.json()
+    logger.info(data)
+    assert response.status_code == status.HTTP_200_OK
+    assert data[0]["name"] == "Groceries" # from preloaded categories
 
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
 
-    response = client.get("/api/v1/categories/", headers=headers)
+@pytest.mark.asyncio
+async def test_update_category(client_with_token, logger):
+    # create category
+    create_resp = await client_with_token.post("/api/v1/categories/", json={"name": "Bills", "description": "Monthly bills"})
+    cat_id = create_resp.json()["id"]
 
-    print(response.json())
+    update_payload = {"name_new": "Utilities", "description": "Updated description"}
+    update_resp = await client_with_token.put(f"/api/v1/categories/{cat_id}", json=update_payload)
+    data = update_resp.json()
+    logger.info(data)
+    assert update_resp.status_code == status.HTTP_200_OK
+    assert data["name"] == "Utilities"
+    assert data["description"] == "Updated description"
 
-client = TestClient(app)
-token = create_access_token({"sub": "testuser"})
 
-test_categories(client)
+@pytest.mark.asyncio
+async def test_delete_category(client_with_token, logger):
+    # create category
+    create_resp = await client_with_token.post("/api/v1/categories/", json={"name": "Bills", "description": "Monthly bills"})
+    cat_id = create_resp.json()["id"]
+
+    delete_resp = await client_with_token.delete(f"/api/v1/categories/{cat_id}")
+    data = delete_resp.json()
+
+    logger.info(data)
+
+    assert delete_resp.status_code == status.HTTP_200_OK
+    assert "deleted successfully" in data["message"]

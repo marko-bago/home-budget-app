@@ -32,14 +32,10 @@ async def register(user_in: UserCreate, db = Depends(get_session)):
         username=user_in.username,
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
-        balance=1000.0  # default balance
+        balance=1000.0,  # default balance
+        categories=[Category(name=c["name"], description=c["description"]) for c in settings.DEFAULT_CATEGORIES]
     )
     db.add(new_user)
-
-    # Create default categories
-    for c in settings.DEFAULT_CATEGORIES:
-        category = Category(user_id=new_user.id, name=c["name"], description=c["description"])
-        db.add(category)
 
     await db.commit()
     await db.refresh(new_user)
