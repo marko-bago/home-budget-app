@@ -2,6 +2,7 @@ from fastapi import APIRouter, status, Depends, HTTPException
 from .schemas import TransactionCreate, TransactionOut, TransactionUpdate
 from src.dependencies import get_session, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from src.auth.models import User
 from src.categories.models import Category
 from .models import Transaction, TransactionType
@@ -20,13 +21,13 @@ async def list_transactions(
     from_date: date = Query(None, description="Filter transactions from this date"),
     to_date: date = Query(None, description="Filter transactions to this date"),
     period: str = Query(None, description="Filter transactions by predefined period"),
-    sort_by: str = Query("spent_at", pattern="^(amount|spent_at)$", description="Sort by 'amount' or 'spent_at'"),
+    sort_by: str = Query("created_at", pattern="^(amount|created_at)$", description="Sort by 'amount' or 'created_at'"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order: 'asc' or 'desc'"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session)
 ):  
     
-    query = select(Transaction).join(Category).where(Transaction.user_id == user.id)
+    query = select(Transaction).options(joinedload(Transaction.category)).where(Transaction.user_id == user.id)
 
     if category:
         query_check_exists = select(Category).where(category == Category.name)
@@ -58,13 +59,13 @@ async def list_transactions(
 
     if from_date:
         from_date = datetime.combine(from_date, time.min)
-        query = query.where(Transaction.spent_at >= from_date)
+        query = query.where(Transaction.created_at >= from_date)
 
     if to_date:
         to_date = datetime.combine(to_date, time.max)
-        query = query.where(Transaction.spent_at <= to_date)
+        query = query.where(Transaction.created_at <= to_date)
     
-    order_column = Transaction.spent_at if sort_by == "date" else Transaction.amount
+    order_column = Transaction.created_at if sort_by == "date" else Transaction.amount
     if sort_order == "desc":
         query = query.order_by(order_column.desc())
     else:
@@ -95,7 +96,7 @@ async def get_summary(
         func.count(Transaction.id),
         func.sum(adjusted_amount),
         func.avg(adjusted_amount)
-    ).join(Category).where(Transaction.user_id == user.id)
+    ).where(Transaction.user_id == user.id)
 
     if category:
         query_check_exists = select(Category).where(category == Category.name)
@@ -126,11 +127,11 @@ async def get_summary(
 
     if from_date:
         from_date = datetime.combine(from_date, time.min)
-        query = query.where(Transaction.spent_at >= from_date)
+        query = query.where(Transaction.created_at >= from_date)
 
     if to_date:
         to_date = datetime.combine(to_date, time.max)
-        query = query.where(Transaction.spent_at <= to_date)
+        query = query.where(Transaction.created_at <= to_date)
     
 
     result = await db.execute(query)
@@ -150,7 +151,7 @@ async def create_transaction(
     if not cat_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
 
-    if user.balance < transaction_in.amount:
+    if transaction_in.type == TransactionType.expense and user.balance < transaction_in.amount:
         raise HTTPException(status_code=409, detail="Insufficient balance.")
 
     if transaction_in.type == TransactionType.expense:
@@ -163,7 +164,7 @@ async def create_transaction(
     # Try to deduct the balance atomically to avoid clashes
     query = (
         update(User)
-        .where(User.id == user.id, User.balance >= transaction_in.amount)
+        .where(User.id == user.id)
         .values(balance=User.balance + balance_change)
         .returning(User.id)
     )
@@ -198,7 +199,7 @@ async def update_transaction(
     user=Depends(get_current_user),
     db=Depends(get_session)
 ):  
-    query_check_exists = select(Transaction).where(Transaction.id == transaction_id)
+    query_check_exists = select(Transaction).options(joinedload(Transaction.category)).where(Transaction.id == transaction_id)
     transaction = (await db.execute(query_check_exists)).scalars().first()
 
     if not transaction:

@@ -3,7 +3,6 @@ from src.dependencies import get_session, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User
 from sqlalchemy import select, update
-from .schemas import BalanceIn, BalanceOut
 from src.auth.schemas import UserOut
 
 router = APIRouter()
@@ -12,7 +11,7 @@ router = APIRouter()
 async def get_user_info(
     user: User = Depends(get_current_user)
 ):
-    return {"id": user.id, "username": user.username, "email": user.email}
+    return user
 
 @router.delete("/{user_id}", response_model=UserOut, status_code=status.HTTP_200_OK)
 async def remove_profile(
@@ -30,13 +29,6 @@ async def remove_profile(
     await db.commit()
 
     return user
-
-
-@router.get("/balance", response_model=BalanceOut, status_code=status.HTTP_200_OK)
-async def get_balance(
-    user: User = Depends(get_current_user)
-):
-    return {"balance": user.balance}
 
 
 

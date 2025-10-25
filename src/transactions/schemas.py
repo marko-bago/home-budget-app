@@ -18,7 +18,7 @@ class TransactionOut(BaseModel):
     id: int
     amount: float
     description: Optional[str] = None
-    spent_at: datetime
-    category: CategoryOut
+    created_at: datetime
+    category: Optional[CategoryOut] 
 
     model_config = ConfigDict(from_attributes=True)
