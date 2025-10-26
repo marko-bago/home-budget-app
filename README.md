@@ -1,4 +1,4 @@
-# Expense Tracker API
+# Home Budget App
 
 
 Home Budget App API is a backend application designed to help users manage their personal finances.
