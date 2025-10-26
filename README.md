@@ -13,18 +13,6 @@ Innspiration for this project comes from the following link: [fastapi-best-pract
 
 <img alt="Static Badge" src="https://img.shields.io/badge/Version-1.0.0-seagreen?style=for-the-badge">
 
-
-<br>
-
-## Features
-
-- **Account management:** Users can register, login, update their username or delete their account.
-- **Authentication with JWT:** The API is protected by JSON Web Tokens (JWT), only authenticated users can access their data and perform operations on the API.
-- **Expense administration:** Users can create, read, update and delete their expenses. Expenses can be filtered by dates and categories.
-- **Secure and Scalable Database:** The database I used is PostgreSQL. Sensitive settings, such as the database connection URL, are managed through an `.env` file, so users can easily switch databases if they prefer, by adjusting only the `DATABASE_URL` variable.
-- **Database Migrations:** Database schema is kept up to date through migrations managed with Alembic.
-- **Automated testing:** This project uses pytest to perform unit tests and check that everything works correctly.
-
 <br>
 
 ## Installation
@@ -82,7 +70,7 @@ Adjust other parameters in `.env` file as needed.
 
 <br>
 
-## Running Tests
+## Testing
 
 This project uses pytest to perform automated tests to ensure the reliability and functionality of key features.
 
@@ -99,7 +87,7 @@ pytest tests -o log_cli=true -o log_cli_level=INFO
 
 <br>
 
-## How to use it
+## Documentation
 
 Once the application is up and running, you can access Swagger's interactive API documentation at 
 `http://localhost:8000/docs`, or ReDoc's at `http://localhost:8000/redoc`, where you can visualize and test the available API endpoints.
