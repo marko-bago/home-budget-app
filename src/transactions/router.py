@@ -11,6 +11,7 @@ from sqlalchemy import select, update, func, case
 from fastapi import Query
 from dateutil.relativedelta import relativedelta
 
+
 router = APIRouter()
 
 @router.get("/", response_model=list[TransactionOut], status_code=status.HTTP_200_OK)
@@ -55,8 +56,8 @@ async def list_transactions(
             from_date = datetime.now().date() - period_map[period]
             to_date = datetime.now().date()
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 'period' value. Accepted values are 'week', 'month', '3months'.")
-    
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 'period' value. Accepted values are 'week', 'month', 'quarter', 'year.")
+
     if from_date:
         from_date = datetime.combine(from_date, time.min)
         query = query.where(Transaction.created_at >= from_date)
@@ -88,14 +89,31 @@ async def get_summary(
     db: AsyncSession = Depends(get_session)
 ):  
     
+    # Adjusted amount: negative for expenses, positive for incomes
     adjusted_amount = case(
         (Transaction.type == TransactionType.expense, -Transaction.amount),
         else_=Transaction.amount
     )
+
+    expense_amount = case(
+        (Transaction.type == TransactionType.expense, Transaction.amount),
+        else_=0
+    )
+    income_amount = case(
+        (Transaction.type == TransactionType.income, Transaction.amount),
+        else_=0
+    )
+
     query = select(
-        func.count(Transaction.id),
-        func.sum(adjusted_amount),
-        func.avg(adjusted_amount)
+        func.count(Transaction.id).label("num_of_transactions"),
+        func.sum(adjusted_amount).label("sum_of_transactions"),
+        func.avg(adjusted_amount).label("avg_transaction_amount"),
+        func.count(case((Transaction.type == TransactionType.expense, 1))).label("num_of_expenses"),
+        func.sum(expense_amount).label("sum_of_expenses"),
+        func.avg(expense_amount).label("avg_expense"),
+        func.count(case((Transaction.type == TransactionType.income, 1))).label("num_of_incomes"),
+        func.sum(income_amount).label("sum_of_incomes"),
+        func.sum(income_amount).label("avg_income")
     ).where(Transaction.user_id == user.id)
 
     if category:
@@ -123,7 +141,7 @@ async def get_summary(
             from_date = datetime.now()- period_map[period]
             to_date = datetime.now()
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 'period' value. Accepted values are 'week', 'month', '3months'.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 'period' value. Accepted values are 'week', 'month', 'quarter', 'year.")
 
     if from_date:
         from_date = datetime.combine(from_date, time.min)
@@ -135,9 +153,28 @@ async def get_summary(
     
 
     result = await db.execute(query)
+    summary = result.mappings().first()
 
-    count, total, avg = result.first()
-    return {"num_of_transactions": count, "sum_of_transactions": total , "avg_transaction_amount": avg}
+    return summary
+
+@router.get("/{transaction_id}", response_model=TransactionOut, status_code=status.HTTP_200_OK)
+async def get_transaction_by_id(
+    transaction_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session)
+):
+    
+    query_check_exists = select(Transaction).options(joinedload(Transaction.category)).where(Transaction.id == transaction_id)
+    transaction = (await db.execute(query_check_exists)).scalars().first()
+
+    if not transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found.")
+
+    # Ensure the user owns this transaction
+    if transaction.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to update this category.")
+
+    return transaction
 
 @router.post("/", response_model=TransactionOut)
 async def create_transaction(

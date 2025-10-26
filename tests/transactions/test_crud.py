@@ -1,8 +1,7 @@
 from fastapi import status
 from src.config import settings
-from src.transactions.models import Transaction, TransactionType
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+from ..utils import json_output
+
 import pytest
 
 route_path = f"api/{settings.VERSION}/transactions"
@@ -67,16 +66,26 @@ async def test_create_transaction(client_with_token, logger):
     
     assert response.status_code == status.HTTP_200_OK
     transaction = response.json()
-    logger.info(transaction)
+    json_output(logger, response)
     assert transaction["amount"] == transaction_data[0]["amount"]
     assert transaction["description"] == transaction_data[0]["description"]
+
+@pytest.mark.asyncio
+async def test_get_transaction_by_id(client_with_token, logger):
+
+    response = await client_with_token.post(f"{route_path}/", json=transaction_data[0])
+    response = await client_with_token.get(f"{route_path}/1")
+    
+    assert response.status_code == status.HTTP_200_OK
+    json_output(logger, response)
 
 
 @pytest.mark.asyncio
 async def test_update_transaction(client_with_token, logger):
 
     # Create transaction
-    await client_with_token.post(f"{route_path}/", json=transaction_data[0])
+    response = await client_with_token.post(f"{route_path}/", json=transaction_data[0])
+    json_output(logger, response)
 
     # Test updating a transaction
     transaction_update_data = {
@@ -88,7 +97,7 @@ async def test_update_transaction(client_with_token, logger):
     
     assert response.status_code == status.HTTP_200_OK
     updated_transaction = response.json()
-    logger.info(updated_transaction)
+    json_output(logger, response)
     assert updated_transaction["category"]["name"] == transaction_update_data["category_new"]
     assert updated_transaction["description"] == transaction_update_data["description_new"]
 

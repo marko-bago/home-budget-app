@@ -10,6 +10,8 @@ from src.dependencies import get_session
 from src.auth.models import User
 from src.categories.models import Category
 
+import logging
+
 engine = create_async_engine(
     settings.TEST_DATABASE_URL,
     echo=False,
@@ -19,7 +21,6 @@ engine = create_async_engine(
 )
 TestingSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-import logging
 
 # Set up a logger
 @pytest_asyncio.fixture(scope="session")

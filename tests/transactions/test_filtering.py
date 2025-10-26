@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from .test_crud import transaction_data, route_path
 import pytest
+from ..utils import json_output
 
 
 @pytest.mark.asyncio
@@ -12,12 +13,13 @@ async def test_list_transactions_basic(client_with_token, logger):
 
     # Create transactions
     for t in transaction_data:
+        logger.info("")
         r = await client_with_token.post(f"{route_path}/", json=t)
-        logger.info(r.json())
+        json_output(logger, r)
 
     # Test listing transactions
     response = await client_with_token.get(f"{route_path}/")
-    logger.info(response.json())
+    json_output(logger, r)
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()) == len(transaction_data)
@@ -56,22 +58,22 @@ async def test_list_transactions_filter_date(client_with_token, async_db, logger
         "sort_by": "amount"
     }
     # Test listing transactions
-    response = await client_with_token.get(f"{route_path}/", params=filter_params)
-    logger.info(response.json())
+    r = await client_with_token.get(f"{route_path}/", params=filter_params)
+    json_output(logger, r)
 
-    assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 1
+    assert r.status_code == status.HTTP_200_OK
+    assert len(r.json()) == 1
 
     filter_params = {
         "period": "quarter",
         "sort_by": "amount"
     }
     # Test listing transactions
-    response = await client_with_token.get(f"{route_path}/", params=filter_params)
-    logger.info(response.json())
+    r = await client_with_token.get(f"{route_path}/", params=filter_params)
+    json_output(logger, r)
 
-    assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 3
+    assert r.status_code == status.HTTP_200_OK
+    assert len(r.json()) == 3
 
     filter_params = {
         "from_date": datetime.now().date() - relativedelta(months=1),
@@ -79,13 +81,11 @@ async def test_list_transactions_filter_date(client_with_token, async_db, logger
         "sort_by": "amount"
     }
     # Test listing transactions
-    response = await client_with_token.get(f"{route_path}/", params=filter_params)
-    logger.info(response.json())
+    r = await client_with_token.get(f"{route_path}/", params=filter_params)
+    json_output(logger, r)
 
-    assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 1
-
-
+    assert r.status_code == status.HTTP_200_OK
+    assert len(r.json()) == 1
 
 
 @pytest.mark.asyncio
@@ -102,10 +102,11 @@ async def test_get_summary(client_with_token, logger):
     }
     # Test getting transaction summary
     response = await client_with_token.get(f"{route_path}/summary", params=filter_params)
+    json_output(logger, response)
     
     assert response.status_code == status.HTTP_200_OK
     summary = response.json()
-    logger.info(summary)
+    
     assert "num_of_transactions" in summary
     assert "sum_of_transactions" in summary
     assert "avg_transaction_amount" in summary

@@ -7,6 +7,8 @@ Transactions can be of type income and expense.
 Default categories are created when a user is created (defined in config.py)
 The API also features a filtering system to search for transactions by dates and categories and a summary endpoint to get summarizations of transaction data by amount.
 
+Every endpoint is protected by JSON Web Tokens (JWT), only authenticated users can access their data and perform operations on the API by providing a JWT token in the request header.
+
 
 Took guidelines and inspiration for structuring this project from: [fastapi-best-practices](https://github.com/zhanymkanov/fastapi-best-practices)
 

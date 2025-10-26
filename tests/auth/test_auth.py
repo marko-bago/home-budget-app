@@ -1,6 +1,7 @@
 from fastapi import status
-
 import pytest
+
+from ..utils import json_output
 
 # Mock user input
 mock_user_input = {"username": "testuser", "email": "test@example.com", "password": "password123"}
@@ -11,7 +12,7 @@ async def test_register_success(client, logger):
     response = await client.post("/api/v1/auth/register", json=mock_user_input)
 
     data = response.json()
-    logger.info(data)
+    json_output(logger, response)
 
     assert response.status_code == status.HTTP_201_CREATED
     assert data["username"] == mock_user_input["username"]
@@ -23,8 +24,7 @@ async def test_register_username_taken(client, logger):
 
     response = await client.post("/api/v1/auth/register", json=mock_user_input)
     response = await client.post("/api/v1/auth/register", json=mock_user_input)
-    data = response.json()
-    logger.info(data)
+    json_output(logger, response)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -38,7 +38,7 @@ async def test_login_success(client, logger):
                                        "password": mock_user_input["password"]})
     
     data = response.json()
-    logger.info(data)
+    json_output(logger, response)
     
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -55,7 +55,6 @@ async def test_login_wrong_username(client, logger):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client, logger):
-
 
     response = await client.post("/api/v1/auth/login", data={"username": "testuser", "password": "wrongpass"})
     
