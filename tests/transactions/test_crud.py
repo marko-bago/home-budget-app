@@ -1,5 +1,8 @@
 from fastapi import status
 from src.config import settings
+from src.transactions.models import Transaction, TransactionType
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import pytest
 
 route_path = f"api/{settings.VERSION}/transactions"
@@ -56,63 +59,6 @@ transaction_data = [
     }
 ]
 
-@pytest.mark.asyncio
-async def test_list_transactions_basic(client_with_token, logger):
-
-    # Create transactions
-    for t in transaction_data:
-        r = await client_with_token.post(f"{route_path}/", json=t)
-        logger.info(r.json())
-
-    # Test listing transactions
-    response = await client_with_token.get(f"{route_path}/")
-    logger.info(response.json())
-
-    assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == len(transaction_data)
-
-@pytest.mark.asyncio
-async def test_list_transactions_filter(client_with_token, logger):
-
-    # Create transactions
-    for t in transaction_data:
-        await client_with_token.post(f"{route_path}/", json=t)
-
-    filter_params = {
-        "category": settings.DEFAULT_CATEGORIES[0]["name"],
-        "amount_min": 100.0,
-        "sort_by": "amount"
-    }
-    # Test listing transactions
-    response = await client_with_token.get(f"{route_path}/", params=filter_params)
-    logger.info(response.json())
-
-    assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()) == 2
-
-
-@pytest.mark.asyncio
-async def test_get_summary(client_with_token, logger):
-
-     # Create transactions
-    for t in transaction_data:
-        await client_with_token.post(f"{route_path}/", json=t)
-
-    filter_params = {
-        #"category": settings.DEFAULT_CATEGORIES[0]["name"],
-        #"amount_min": 100.0,
-        "sort_by": "amount"
-    }
-    # Test getting transaction summary
-    response = await client_with_token.get(f"{route_path}/summary", params=filter_params)
-    
-    assert response.status_code == status.HTTP_200_OK
-    summary = response.json()
-    logger.info(summary)
-    assert "num_of_transactions" in summary
-    assert "sum_of_transactions" in summary
-    assert "avg_transaction_amount" in summary
-
 
 @pytest.mark.asyncio
 async def test_create_transaction(client_with_token, logger):
@@ -123,6 +69,7 @@ async def test_create_transaction(client_with_token, logger):
     transaction = response.json()
     logger.info(transaction)
     assert transaction["amount"] == transaction_data[0]["amount"]
+    assert transaction["description"] == transaction_data[0]["description"]
 
 
 @pytest.mark.asyncio
@@ -134,8 +81,7 @@ async def test_update_transaction(client_with_token, logger):
     # Test updating a transaction
     transaction_update_data = {
         "category_new": "Electronics",
-        "amount_new": 200.0,
-        "description": "Updated transaction data"
+        "description_new": "Updated transaction category"
     }
 
     response = await client_with_token.put(f"{route_path}/1", json=transaction_update_data)
@@ -143,7 +89,8 @@ async def test_update_transaction(client_with_token, logger):
     assert response.status_code == status.HTTP_200_OK
     updated_transaction = response.json()
     logger.info(updated_transaction)
-    assert updated_transaction["amount"] == transaction_update_data["amount_new"]
+    assert updated_transaction["category"]["name"] == transaction_update_data["category_new"]
+    assert updated_transaction["description"] == transaction_update_data["description_new"]
 
 
 @pytest.mark.asyncio

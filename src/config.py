@@ -4,7 +4,6 @@ class Settings(BaseSettings):
 
     VERSION: str
     PROJECT_NAME: str
-    API_V1_STR: str
     ALL_CORS_ORIGINS: str
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int

@@ -56,7 +56,7 @@ async def list_transactions(
             to_date = datetime.now().date()
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 'period' value. Accepted values are 'week', 'month', '3months'.")
-
+    
     if from_date:
         from_date = datetime.combine(from_date, time.min)
         query = query.where(Transaction.created_at >= from_date)
@@ -215,44 +215,8 @@ async def update_transaction(
     if transaction.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to update this category.")
 
-    diff = transaction_update.amount_new - transaction.amount
-
-    if transaction.type == TransactionType.expense:
-            # For expense, increasing amount deducts from balance
-        if diff > 0 and user.balance < diff:
-            raise HTTPException(status_code=409, detail="Insufficient balance.")
-
-        query = (
-            update(User)
-            .where(User.id == user.id, User.balance >= diff)
-            .values(balance=User.balance - diff)
-            .returning(User.id)
-        )
-    elif transaction.type == TransactionType.income:
-        # For income, decreasing amount reduces user's balance
-        if diff < 0 and user.balance < -diff:
-            raise HTTPException(status_code=409, detail="Insufficient balance to reduce income.")
-
-        query = (
-            update(User)
-            .where(User.id == user.id)
-            .values(balance=User.balance + diff)
-            .returning(User.id)
-        )
-    else:
-        raise HTTPException(status_code=400, detail="Invalid transaction type.")
-
-    updated_user = (await db.execute(query)).scalar()
-
-    if not updated_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update user."
-        )
-    
-    transaction.category_id = cat_db.id
-    transaction.amount = transaction_update.amount_new
-    transaction.description = transaction_update.description
+    transaction.category = cat_db
+    transaction.description = transaction_update.description_new
 
     db.add(transaction)
     await db.commit()

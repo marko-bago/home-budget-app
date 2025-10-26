@@ -2,7 +2,8 @@ from fastapi import status
 from src.config import settings
 import pytest
 
-route_path = f"api/{settings.VERSION}/profile"
+api_route_path = f"api/{settings.VERSION}"
+
 
 # Test creating a transaction
 transaction_data = [
@@ -30,21 +31,21 @@ transaction_data = [
 @pytest.mark.asyncio
 async def test_balance(client_with_token, logger):
 
-    r = await client_with_token.post(f"api/v1/transactions/", json=transaction_data[0])
-    r = await client_with_token.get(f"{route_path}/")
+    r = await client_with_token.post(f"{api_route_path}/transactions/", json=transaction_data[0])
+    r = await client_with_token.get(f"{api_route_path}/profile/")
     assert r.status_code == status.HTTP_200_OK
     assert r.json()["balance"] == 400.0
 
-    r = await client_with_token.post(f"api/v1/transactions/", json=transaction_data[1])
+    r = await client_with_token.post(f"{api_route_path}/transactions/", json=transaction_data[1])
     assert r.status_code == status.HTTP_409_CONFLICT
     assert r.json()["detail"] == 'Insufficient balance.'
 
-    r = await client_with_token.get(f"{route_path}/")
+    r = await client_with_token.get(f"{api_route_path}/profile/")
     assert r.status_code == status.HTTP_200_OK
     assert r.json()["balance"] == 400.0
 
-    r = await client_with_token.post(f"api/v1/transactions/", json=transaction_data[2])
-    r = await client_with_token.get(f"{route_path}/")
+    r = await client_with_token.post(f"{api_route_path}/transactions/", json=transaction_data[2])
+    r = await client_with_token.get(f"{api_route_path}/profile/")
     assert r.status_code == status.HTTP_200_OK
     assert r.json()["balance"] == 2400.0
 

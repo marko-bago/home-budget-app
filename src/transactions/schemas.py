@@ -1,18 +1,17 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from src.categories.schemas import CategoryOut
 
 class TransactionCreate(BaseModel):
     category: str 
-    amount: float 
+    amount: float = Field(title="amount", gt=0, description="Amount must be greater than 0")
     description: Optional[str] = None
     type: str
 
 class TransactionUpdate(BaseModel):
     category_new: str
-    amount_new: float
-    description: Optional[str] = None
+    description_new: Optional[str] = None
 
 class TransactionOut(BaseModel):
     id: int
