@@ -45,7 +45,7 @@ Took guidelines and inspiration for structuring this project from: [fastapi-best
    pip install -r requirements.txt
    ```
 
-5. There is a file called  `template.env` in the root directory of the project with the neccessary project config parameters. To start the project create an `.env` file using the template:
+5. There is a file called  `template.env` in the root directory of the project with the necessary project config parameters. To start the project create an `.env` file using the template:
 
     For the `SECRET_KEY`, you can generate a secure key by running the following command in your terminal:
 
