@@ -13,13 +13,12 @@ async def get_user_info(
 ):
     return user
 
-@router.delete("/{user_id}", response_model=UserOut, status_code=status.HTTP_200_OK)
+@router.delete("/", response_model=UserOut, status_code=status.HTTP_200_OK)
 async def remove_profile(
-    user_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session)
 ):
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == user.id))
     user = result.scalar_one_or_none()
 
     if not user:

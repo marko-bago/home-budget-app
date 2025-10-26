@@ -58,7 +58,10 @@ async def test_delete_user(client_with_token, logger):
     assert r.status_code == status.HTTP_200_OK
     json_output(logger, r)
 
-    r = await client_with_token.delete(f"{api_route_path}/profile/1")
+    r = await client_with_token.delete(f"{api_route_path}/profile/")
+    del_user = r.json()
+    assert del_user["id"] == 1
+    assert del_user["username"] == "tester"
     json_output(logger, r)
 
     r = await client_with_token.get(f"{api_route_path}/profile/")
