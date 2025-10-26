@@ -8,7 +8,7 @@ Default categories are created when a user is created (defined in config.py)
 The API also features a filtering system to search for transactions by dates and categories and a summary endpoint to get summarizations of transaction data by amount.
 
 
-Innspiration for this project comes from the following link: [fastapi-best-practices](https://github.com/zhanymkanov/fastapi-best-practices)
+Took guidelines and inspiration for structuring this project from: [fastapi-best-practices](https://github.com/zhanymkanov/fastapi-best-practices)
 
 
 <img alt="Static Badge" src="https://img.shields.io/badge/Version-1.0.0-seagreen?style=for-the-badge">
