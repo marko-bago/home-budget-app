@@ -1,6 +1,7 @@
 from fastapi import status
 from src.config import settings
 import pytest
+from ..utils import json_output
 
 api_route_path = f"api/{settings.VERSION}"
 
@@ -49,4 +50,16 @@ async def test_balance(client_with_token, logger):
     assert r.status_code == status.HTTP_200_OK
     assert r.json()["balance"] == 2400.0
 
-        
+
+@pytest.mark.asyncio
+async def test_delete_user(client_with_token, logger):
+
+    r = await client_with_token.get(f"{api_route_path}/profile/")
+    assert r.status_code == status.HTTP_200_OK
+    json_output(logger, r)
+
+    r = await client_with_token.delete(f"{api_route_path}/profile/1")
+    json_output(logger, r)
+
+    r = await client_with_token.get(f"{api_route_path}/profile/")
+    assert r.status_code == status.HTTP_401_UNAUTHORIZED
